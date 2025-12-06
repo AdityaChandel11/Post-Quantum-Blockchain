@@ -152,30 +152,24 @@ class Blockchain:
         return new_block.index
 
 # --- Test Mining (Verification) ---
-
 if __name__ == '__main__':
-    my_blockchain = Blockchain()
-    
-    # 1. Add transactions for Block 1
-    my_blockchain.add_transaction({"sender": "A", "recipient": "B", "amount": 5})
-    my_blockchain.add_transaction({"sender": "C", "recipient": "D", "amount": 12})
-    
-    # 2. Mine Block 1
-    print("Starting mining Block 1...")
-    mined_index = my_blockchain.mine()
-    
-    if mined_index:
-        print(f"Block {mined_index} successfully mined and added.")
-        print(f"Block 1 Hash (must start with {Blockchain.DIFFICULTY} zeros): {my_blockchain.last_block.hash}")
-    
-    # 3. Add transactions for Block 2
-    my_blockchain.add_transaction({"sender": "E", "recipient": "F", "amount": 8})
-    
-    # 4. Mine Block 2
-    print("\nStarting mining Block 2...")
-    mined_index = my_blockchain.mine()
-    
-    if mined_index:
-        print(f"Block {mined_index} successfully mined and added.")
-        print(f"Block 2 Previous Hash (must match Block 1 Hash): {my_blockchain.last_block.previous_hash}")
-        print(f"Block 2 Hash: {my_blockchain.last_block.hash}")
+    # 1. Initialize the Blockchain
+    blockchain = Blockchain()
+
+    # 2. Add a dummy transaction manually to ensure it works
+    print("Adding transaction...")
+    blockchain.unconfirmed_transactions.append({
+        'sender': 'Alice',
+        'recipient': 'Bob',
+        'amount': 10
+    })
+
+    # 3. Mine the block
+    print("Mining block...")
+    blockchain.mine()
+
+    # 4. Verify: Print the entire chain
+    print("\n--- Blockchain Verification ---")
+    for block in blockchain.chain:
+        # Using __dict__ prints all block data (index, transactions, timestamp, etc.)
+        print(block.__dict__)

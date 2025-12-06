@@ -173,3 +173,40 @@ if __name__ == '__main__':
     for block in blockchain.chain:
         # Using __dict__ prints all block data (index, transactions, timestamp, etc.)
         print(block.__dict__)
+
+    # --- Step 5: Security & Integrity Check ---
+
+def check_chain_validity(chain_data):
+    # Loop starts at index 1 (the first mined block)
+    for i in range(1, len(chain_data)):
+        current_block = chain_data[i]
+        previous_block = chain_data[i-1]
+        
+        # 1. CHECK THE LINK (Previous Hash Pointer)
+        if current_block.previous_hash != previous_block.hash:
+            return False
+            
+        # 2. CHECK DATA INTEGRITY (Block's Own Hash)
+        # This checks if the data (transactions) matches the hash
+        if current_block.hash != current_block.calculate_hash():
+            return False 
+            
+    return True
+
+# --- Testing the Security ---
+print("\n--- Security Check 1 (Normal) ---")
+if check_chain_validity(blockchain.chain):
+    print("Result: Blockchain is VALID and SECURE.")
+else:
+    print("Result: Blockchain is INVALID.")
+
+# --- Simulating a Hack ---
+print("\n[!] HACKER ALERT: Modifying transaction in Block 1...")
+# Changing the data of an existing block
+blockchain.chain[1].transactions = [{'sender': 'Hacker', 'recipient': 'Me', 'amount': 1000000}]
+
+print("--- Security Check 2 (After Hack) ---")
+if check_chain_validity(blockchain.chain):
+    print("Result: Blockchain is still valid (FAILED).")
+else:
+    print("Result: ALERT! Tampering detected. Blockchain is INVALID.")

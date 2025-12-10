@@ -5,7 +5,8 @@ from ecc_auth import NodeAuth
 import json
 import base64
 
-app = Flask(__name__, template_folder="web/templates", static_folder="web/static")
+app = Flask(__name__, template_folder="templates", static_folder="static")
+
 
 # Single-node demo (for seminar). For multi-node you can run multiple copies and use register/sync endpoints.
 blockchain = Blockchain()

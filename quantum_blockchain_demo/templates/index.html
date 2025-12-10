@@ -1,0 +1,54 @@
+<!-- web/templates/index.html -->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Quantum-PQC Blockchain Demo</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Quantum + PQC + ECC Blockchain Demo</h1>
+
+    <section id="keys">
+      <h2>1. Generate Keys (Demo)</h2>
+      <button id="genKeysBtn">Generate Key Pair</button>
+      <pre id="keysOutput"></pre>
+    </section>
+
+    <section id="tx">
+      <h2>2. Create & Sign Transaction</h2>
+      <label>Private Key PEM:</label>
+      <textarea id="privateKeyPem" placeholder="Paste private key PEM here (from Generate)"></textarea>
+
+      <label>Sender Public Key PEM (optional):</label>
+      <textarea id="publicKeyPem" placeholder="Paste public key PEM here (from Generate)"></textarea>
+
+      <label>Recipient:</label>
+      <input id="recipient" type="text" value="Bob" />
+      <label>Amount:</label>
+      <input id="amount" type="number" value="10" />
+
+      <button id="signBtn">Sign Transaction</button>
+      <pre id="signatureOutput"></pre>
+
+      <button id="sendTxBtn">Send Transaction (to pending pool)</button>
+      <pre id="sendTxOutput"></pre>
+    </section>
+
+    <section id="mine">
+      <h2>3. Mine & Inspect</h2>
+      <button id="mineBtn">Mine Block</button>
+      <pre id="mineOutput"></pre>
+      <button id="showChainBtn">Show Chain</button>
+      <pre id="chainOutput"></pre>
+      <button id="validateBtn">Validate Chain</button>
+      <pre id="validateOutput"></pre>
+    </section>
+
+    <footer>Demo for seminar — not production. Private keys are returned for demonstration only.</footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

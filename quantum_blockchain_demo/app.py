@@ -4,12 +4,134 @@ from blockchain import Blockchain
 from ecc_auth import NodeAuth
 import json
 import base64
+import requests
+import hashlib
+from datetime import datetime
+def canonical_json_str(obj):
+    # deterministic JSON string
+    return json.dumps(obj, sort_keys=True, separators=(',', ':'))
+
+def pqc_like_hash(data_str: str) -> str:
+    # simple deterministic post-quantum-like hash (SHA-256 here for demo)
+    # If you have quantum_security.pqc_hash_key, call that instead.
+    return hashlib.sha256(data_str.encode()).hexdigest()
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 
 
 # Single-node demo (for seminar). For multi-node you can run multiple copies and use register/sync endpoints.
 blockchain = Blockchain()
+@app.route('/fetch_weather', methods=['POST'])
+def fetch_weather_and_add_block():
+    """
+    Expects JSON: {"lat": <float>, "lon": <float>, "use_mine": true/false}
+    Steps:
+      1) fetch weather JSON from Open-Meteo
+      2) form canonical payload
+      3) compute pqc_hash
+      4) sign hash using server's node key (or require client private key)
+      5) add to blockchain (either pending -> mine or direct block add for demo)
+    """
+    req = request.get_json() or {}
+    lat = req.get('lat', 28.6139)   # default: New Delhi
+    lon = req.get('lon', 77.2090)
+    use_mine = req.get('use_mine', True)
+
+    # 1) Fetch live data (Open-Meteo)
+    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
+    r = requests.get(url, timeout=10)
+    if r.status_code != 200:
+        return jsonify({"success": False, "error": "API fetch failed", "status_code": r.status_code}), 502
+    api_payload = r.json()
+
+    # 2) canonicalize
+    payload_str = canonical_json_str({"lat": lat, "lon": lon, "api": api_payload})
+
+    # 3) compute PQC-like hash
+    pqc_hash = pqc_like_hash(payload_str)
+
+    # 4) sign (server-side) - use NodeAuth or cryptography directly
+    # best: sign the pqc_hash with node's ECC private key (for demo we assume auth has sign method)
+    signature_b64 = None
+    try:
+        # if you have NodeAuth() and it exposes sign_from_pem(private_pem, message)
+        # auth = NodeAuth()
+        # signature_b64 = auth.sign_hash_with_server_key(pqc_hash)
+        # fallback: use a simple ECC signing using cryptography
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import ec
+        from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
+        # Load server private key file if you saved one; else reuse previously generated private key in memory.
+        # For demo let's assume you have a file 'server_private.pem' in project (or use a generated NodeAuth.private_key variable)
+        try:
+            with open("server_private.pem", "rb") as f:
+                priv = serialization.load_pem_private_key(f.read(), password=None)
+        except FileNotFoundError:
+            # if not present, use NodeAuth to generate ephemeral key (not persistent) - replace with your own logic
+            priv = auth.get_private_key_object()  # adapt to your ecc_auth API
+        sig = priv.sign(pqc_hash.encode(), ec.ECDSA(hashes.SHA256()))
+        import base64
+        signature_b64 = base64.b64encode(sig).decode()
+    except Exception as e:
+        signature_b64 = None
+
+    # 5) create block payload and add to blockchain
+    block_data = {
+        "api_source": "open-meteo",
+        "lat": lat,
+        "lon": lon,
+        "payload": api_payload,
+        "pqc_hash": pqc_hash,
+        "ecc_signature": signature_b64,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+    # Option A: add as pending transaction and mine
+    if use_mine and hasattr(blockchain, "add_transaction"):
+        blockchain.add_transaction({"type": "api_data", "data": block_data})
+        # you can auto-mine immediately for demo:
+        mined_block = blockchain.mine()  # if your API returns mined block info
+        return jsonify({"success": True, "message": "API data added and mined", "block": mined_block})
+
+    # Option B: direct append block (if your class supports it)
+    # fallback: create and append using blockchain API you have
+    try:
+        new_block = blockchain.add_api_block(block_data)  # implement this method if not present
+        return jsonify({"success": True, "message": "API data added as block", "block": new_block})
+    except Exception:
+        # fallback return the data we would store
+        return jsonify({"success": True, "message": "API data processed (not mined)", "data": block_data})
+        @app.route('/verify_api_block', methods=['POST'])
+def verify_api_block():
+    """
+    Expects JSON: {"block_index": <int>}
+    Re-fetches the API for the lat/lon in that block, recomputes hash, compares stored pqc_hash.
+    """
+    req = request.get_json() or {}
+    idx = req.get('block_index')
+    if idx is None:
+        return jsonify({"success": False, "error": "block_index required"}), 400
+
+    try:
+        block = blockchain.chain[idx]  # adjust to your structure
+    except Exception:
+        return jsonify({"success": False, "error": "block not found"}), 404
+
+    lat = block.get('lat') or block.get('data', {}).get('lat')
+    lon = block.get('lon') or block.get('data', {}).get('lon')
+    # fetch current
+    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
+    r = requests.get(url, timeout=10)
+    if r.status_code != 200:
+        return jsonify({"success": False, "error": "API fetch failed", "status_code": r.status_code}), 502
+    current_payload = r.json()
+    payload_str = canonical_json_str({"lat": lat, "lon": lon, "api": current_payload})
+    current_hash = pqc_like_hash(payload_str)
+
+    ok = (current_hash == block.get('pqc_hash'))
+    return jsonify({"success": True, "match": ok, "stored_hash": block.get('pqc_hash'), "current_hash": current_hash})
+
+
 auth = NodeAuth()
 
 # ----------------- Helper: check signature of a transaction -----------------

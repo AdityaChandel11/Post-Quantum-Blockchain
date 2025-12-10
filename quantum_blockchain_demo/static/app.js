@@ -52,3 +52,24 @@ document.getElementById('validateBtn').onclick = async () => {
   const res = await callAPI('/validate_chain');
   document.getElementById('validateOutput').textContent = JSON.stringify(res, null, 2);
 };
+async function callAPI(path, method='GET', body=null) {
+  const res = await fetch(path, {
+    method,
+    headers: {'Content-Type':'application/json'},
+    body: body ? JSON.stringify(body) : undefined
+  });
+  return res.json();
+}
+
+document.getElementById('fetchApiBtn').onclick = async () => {
+  const lat = parseFloat(document.getElementById('apiLat').value);
+  const lon = parseFloat(document.getElementById('apiLon').value);
+  const res = await callAPI('/fetch_weather', 'POST', {lat, lon, use_mine: true});
+  document.getElementById('fetchApiOutput').textContent = JSON.stringify(res, null, 2);
+};
+
+document.getElementById('verifyBtn').onclick = async () => {
+  const idx = parseInt(document.getElementById('verifyIndex').value);
+  const res = await callAPI('/verify_api_block', 'POST', {block_index: idx});
+  document.getElementById('verifyOutput').textContent = JSON.stringify(res, null, 2);
+};

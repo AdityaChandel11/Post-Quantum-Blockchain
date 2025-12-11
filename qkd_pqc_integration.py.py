@@ -136,3 +136,4 @@ for i in range(len(blockchain.chain)):
         print(f"✅ Block {i} signature is valid")
     except:
         print(f"❌ Block {i} signature is invalid")
+        

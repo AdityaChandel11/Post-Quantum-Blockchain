@@ -53,8 +53,5 @@ The system demonstrates how blockchain data can remain **verifiable, immutable, 
 - ✔️ Quantum-resistant security approach
 - ✔️ Clean and modular code design
 
----
-
-## 📂 Project Structure
 
 
